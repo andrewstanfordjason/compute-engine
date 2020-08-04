@@ -12,9 +12,11 @@ Usage Examples:
 import click
 
 from larq_compute_engine.mlir.python.converter import convert_keras_model
+import larq_zoo as lqz
 
 
 def model_fn():
+    return lqz.sota.QuickNet()
     raise NotImplementedError(
         "No model defined. This function should be overwritten by caller."
     )
@@ -28,9 +30,7 @@ def model_fn():
     type=click.Path(writable=True, resolve_path=True),
 )
 def convert_model(outfile):
-    model_lce = convert_keras_model(
-        model_fn(), experimental_enable_bitpacked_activations=True
-    )
+    model_lce = convert_keras_model(model_fn())
     with open(outfile, "wb") as f:
         f.write(model_lce)
 

@@ -66,7 +66,7 @@ class LQ_Op<string mnemonic, list<OpTrait> traits = []> :
 class TensorOfOrNone<list<Type> allowedTypes, string description = ""> :
   AnyTypeOf<[TensorOf<allowedTypes>, NoneType], description>;
 
-def LQ_BsignOp : LQ_Op<"Bsign", [NoSideEffect, SameOperandsAndResultType]> {
+def LQ_BsignOp : LQ_Op<"Bsign", [NoSideEffect]> {
   let summary = "Returns an element-wise indication of the binary sign of a number.";
 
   let description = [{
@@ -82,6 +82,42 @@ def LQ_BsignOp : LQ_Op<"Bsign", [NoSideEffect, SameOperandsAndResultType]> {
   );
 }
 
+def LQ_QuantizeOp : LQ_Op<"Quantize", [NoSideEffect]> {
+  let summary = "Binary quantize operator";
+
+  let description = [{
+Converts floating point or integer tensors to binarized bitpacked tensors.
+  }];
+
+  let arguments = (ins
+    TensorOf<[BF16, F16, F32, F64, I32, I64, QI8, QI16]>:$x
+  );
+
+  let results = (outs
+    TensorOf<[I32]>:$y
+  );
+
+  let builders = [OpBuilder<
+    "OpBuilder &builder, OperationState &state, Value x"
+  >];
+}
+
+def LQ_DequantizeOp : LQ_Op<"Dequantize", [NoSideEffect]> {
+  let summary = "Binary dequantize operator";
+
+  let description = [{
+Converts binarized bitpacked tensors to floating point or integer tensors.
+  }];
+
+  let arguments = (ins
+    TensorOf<[I32]>:$x
+  );
+
+  let results = (outs
+    TensorOf<[BF16, F16, F32, F64, I32, I64, QI8, QI16]>:$y
+  );
+}
+
 def LQ_Bconv2dOp : LQ_Op<"Bconv2d", [NoSideEffect]> {
   let summary = [{
 Computes a 2D binary convolution by binarizing and bitpacking the input and filter.
@@ -92,7 +128,7 @@ TODO
   }];
 
   let arguments = (ins
-    TensorOf<[F32, I32, QI8]>:$input,
+    TensorOf<[I32]>:$input,
     TensorOf<[F32, I32]>:$filter,
     TensorOfOrNone<[F32]>:$post_activation_multiplier,
     TensorOfOrNone<[F32]>:$post_activation_bias,

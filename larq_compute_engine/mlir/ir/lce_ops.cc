@@ -56,6 +56,17 @@ std::vector<uint8_t> BMaxPool2dOp::buildCustomOptions() {
   return fbb.GetBuffer();
 }
 
+void QuantizeOp::build(OpBuilder& builder, OperationState& state, Value x) {
+  state.addOperands(x);
+  const auto existing_shape = x.getType().cast<ShapedType>().getShape();
+  const auto channels = existing_shape[existing_shape.size() - 1];
+  const auto packed_channels = (channels + 32 - 1) / 32;
+  std::vector<int64_t> shape = existing_shape.drop_back();
+  shape.push_back(packed_channels);
+  auto type = RankedTensorType::get(shape, builder.getIntegerType(32));
+  state.addTypes(type);
+}
+
 LarqDialect::LarqDialect(MLIRContext* context)
     : Dialect(getDialectNamespace(), context) {
   addOperations<

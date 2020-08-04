@@ -159,3 +159,7 @@ foreach actFnPair = [[TFL_ReluOp, TFL_AF_Relu],
                      [TFL_Relu1Op, TFL_AF_Relu1],
                      [TFL_Relu6Op, TFL_AF_Relu6]] in
   defm : FuseActFnIntoConvOpPat<actFnPair[0], actFnPair[1]>;
+
+def : Pat<(LQ_DequantizeOp (LQ_QuantizeOp: $output $arg)), (LQ_BsignOp $arg),
+          [(HasOneUse $output)]>;
+def : Pat<(LQ_QuantizeOp $arg), (LQ_BsignOp $arg)>;
