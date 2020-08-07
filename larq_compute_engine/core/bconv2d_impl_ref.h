@@ -41,6 +41,9 @@ inline void BConv2D(
     const RuntimeShape& im2col_shape, TBitpacked* im2col_data,
     bool bitpack_before_im2col, void* padding_buffer, const int pad_value,
     void* cpu_backend_context) {
+
+  assert(((pad_value >= -1) && (pad_value <= 1)));
+
   static_assert(std::is_same<DstScalar, float>::value ||
                     std::is_same<DstScalar, std::int32_t>::value ||
                     std::is_same<DstScalar, std::int8_t>::value,
@@ -85,19 +88,42 @@ inline void BConv2D(
                 const int in_x = in_x_origin + dilation_width_factor * filter_x;
                 const int in_y =
                     in_y_origin + dilation_height_factor * filter_y;
-                // `pad_value=1`, which means the bitpacked value is 0, so we
-                // set `input_value=0`
-                TBitpacked input_value = 0;
-                if ((in_x >= 0) && (in_x < input_width) && (in_y >= 0) &&
-                    (in_y < input_height)) {
-                  input_value = packed_input_data[Offset(
-                      packed_input_shape, batch, in_y, in_x, in_channel)];
-                }
+
                 TBitpacked filter_value =
                     packed_filter_data[Offset(packed_filter_shape, out_channel,
                                               filter_y, filter_x, in_channel)];
-                accum += ce::core::xor_popcount<TBitpacked, AccumScalar>(
-                    input_value, filter_value);
+
+                bool in_valid_region = ((in_x >= 0) && (in_x < input_width) && (in_y >= 0) &&
+                      (in_y < input_height));
+
+                if(pad_value == 0){
+                  if (in_valid_region) {
+                    TBitpacked input_value = packed_input_data[Offset(
+                        packed_input_shape, batch, in_y, in_x, in_channel)];
+                     
+                    accum += ce::core::xor_popcount<TBitpacked, AccumScalar>(
+                        input_value, filter_value);   
+                  }
+                } else {
+
+                  TBitpacked input_value;
+                  switch(pad_value){
+
+                    // `pad_value=1`, which means the bitpacked value is 0, so we
+                    // set `input_value=0`
+                    case 1: input_value = 0; break;
+
+                    // `pad_value=0`, which means the bitpacked value is 1, so we
+                    // set `input_value=~0`
+                    case -1: input_value = ~0; break;
+                  }
+                  if (in_valid_region) {
+                    input_value = packed_input_data[Offset(
+                        packed_input_shape, batch, in_y, in_x, in_channel)];
+                  }
+                  accum += ce::core::xor_popcount<TBitpacked, AccumScalar>(
+                      input_value, filter_value);
+                }
               }
             }
           }
