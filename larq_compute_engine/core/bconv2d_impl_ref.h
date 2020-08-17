@@ -85,6 +85,7 @@ inline void BConv2D(
                 const int in_x = in_x_origin + dilation_width_factor * filter_x;
                 const int in_y =
                     in_y_origin + dilation_height_factor * filter_y;
+                    
                 // `pad_value=1`, which means the bitpacked value is 0, so we
                 // set `input_value=0`
                 TBitpacked input_value = 0;
